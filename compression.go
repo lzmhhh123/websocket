@@ -34,7 +34,11 @@ var (
 
 func decompressNoContextTakeover(r io.Reader) io.ReadCloser {
 	fr, _ := flateReaderPool.Get().(io.ReadCloser)
-	fr.(flate.Resetter).Reset(io.MultiReader(r, strings.NewReader(tail)), nil)
+	mr := io.MultiReader(r, strings.NewReader(tail))
+	if err := fr.(flate.Resetter).Reset(mr, nil); err != nil {
+		// Reset never fails, but handle error in case that changes.
+		fr = flate.NewReader(mr)
+	}
 	return &flateReadWrapper{fr}
 }
 
